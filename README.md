@@ -1,6 +1,6 @@
 # ldaR6 — Predictive Linear Discriminant Analysis in R
 
-**[Launch the Shiny application on Posit Connect Cloud](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216)**
+**[Launch the Shiny application on Posit Connect Cloud](https://01a1d27f-1653-cd6f-e042-b2aaab58b216.share.connect.posit.cloud/)**
 
 `ldaR6` is an R package for supervised classification using **linear discriminant analysis (LDA)**. The core algorithm is implemented from scratch in an R6 class with a `fit`, `predict`, and `predict_proba` interface. The package also includes a Shiny application for training models, exploring results, and making predictions without writing R code.
 
