@@ -61,7 +61,7 @@ The first three rows come from the training set and are used here to illustrate 
 
 ## Shiny application
 
-Open the [online demo](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216) or launch the application locally:
+Open the [online demo](https://01a1d27f-1653-cd6f-e042-b2aaab58b216.share.connect.posit.cloud/) or launch the application locally:
 
 ```r
 ldaR6::run_app()
