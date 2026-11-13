@@ -1,0 +1,12 @@
+^report$
+^benchmarks$
+^tutorial$
+^data-raw$
+^TUTORIAL\.md$
+^.*\.Rproj$
+^\.Rproj\.user$
+^README\.Rmd$
+^\.git$
+^releases$
+^report/.*\.(aux|log|out|toc)$
+^VERIFICATIONS\.md$

@@ -1,0 +1,22 @@
+#' Synthetic credit-risk data (mixed numeric / categorical predictors)
+#'
+#' Simulated data set used in the tutorial. The target `risk` has three
+#' classes; the predictors mix numeric and categorical variables, including
+#' pure-noise variables and one variable that is a noisy copy of another
+#' (`income_copy`), to illustrate selection and redundancy diagnostics.
+#'
+#' @format A data.frame with 900 rows and 12 columns:
+#' \describe{
+#'   \item{risk}{factor, target: `low`, `medium`, `high`}
+#'   \item{age, income, debt_ratio, savings, n_late}{numeric predictors}
+#'   \item{income_copy}{noisy copy of `income` (redundant)}
+#'   \item{noise1, noise2}{pure noise}
+#'   \item{housing}{factor: `own`, `rent`, `free`}
+#'   \item{job}{factor with 4 levels}
+#'   \item{education}{ordered factor: `primary` < `secondary` < `higher`}
+#' }
+#' @source Simulated, see `data-raw/make_data.R`.
+#' @examples
+#' data(credit_demo)
+#' table(credit_demo$risk)
+"credit_demo"

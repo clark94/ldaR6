@@ -1,0 +1,26 @@
+Package: ldaR6
+Type: Package
+Title: Predictive Linear Discriminant Analysis with R6 and a Shiny Interface
+Version: 1.0.0
+Authors@R: person(given = "Chancy Loïc Franlly", family = "MAMPOUYA CLARK", email = "clarkfranlly@gmail.com", role = c("aut", "cre"))
+Description: Predictive linear discriminant analysis (LDA) implemented from
+    scratch as an 'R6' class with a scikit-learn like interface (fit, predict,
+    predict_proba, transform). The core relies on pooled within-class
+    covariance matrices and reproduces the classification functions of SAS
+    PROC DISCRIM. The package provides Wilks' lambda and Rao's F tests, partial
+    (per-variable) contribution tests, stepwise variable selection (forward,
+    backward, both) based on Wilks' lambda, automatic handling of categorical
+    predictors (dummy, one-hot or label encoding), optional covariance
+    shrinkage for high-dimensional data, cross-validation, canonical
+    (discriminant) axes, and a Shiny application for beginners.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 3.6.0)
+Imports: R6, stats, graphics, grDevices, utils
+Suggests: shiny, bslib, DT, ggplot2, readxl, testthat (>= 3.0.0), MASS,
+    knitr, rmarkdown, microbenchmark
+Config/testthat/edition: 3
+LazyData: true
+URL: https://github.com/clark94/ldaR6
+BugReports: https://github.com/clark94/ldaR6/issues
+Config/roxygen2/version: 8.1.1

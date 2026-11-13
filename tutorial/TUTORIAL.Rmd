@@ -1,0 +1,237 @@
+---
+title: "ldaR6 tutorial: predictive linear discriminant analysis in R"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.path = "tutorial/figures/",
+                      fig.width = 6.5, fig.height = 4.5, dpi = 110)
+```
+
+`ldaR6` implements predictive **linear discriminant analysis (LDA)** as an `R6` class with a
+scikit-learn like interface (`$fit()`, `$predict()`, `$predict_proba()`), tests of significance
+(Wilks' lambda, Rao's F), stepwise variable selection, categorical predictors, and a **Shiny** application.
+This tutorial is fully reproducible: every output below was produced by knitting this file.
+
+## 1. Installation
+
+```r
+# from GitHub (replace clark94 by the account hosting the repository)
+install.packages("remotes")
+remotes::install_github("clark94/ldaR6")
+
+# fallback: local archive shipped with the repository (RStudio: Tools > Install Packages > Package Archive File)
+install.packages("ldaR6_1.0.0.tar.gz", repos = NULL, type = "source")
+```
+
+```{r load}
+library(ldaR6)
+```
+
+## 2. Fit a model: `$fit()`
+
+The constructor only stores parameters; `$fit(X, y)` learns the model. `X` is a data frame of
+explanatory variables and `y` a factor.
+
+```{r fit}
+model <- LDA$new()                      # default: proportional priors, no selection
+model$fit(iris[, 1:4], iris$Species)
+model                                   # concise print
+```
+
+### Outputs of `$fit()`
+
+| Field | Content |
+|---|---|
+| `$coefficients` | classification functions (first row = constant), same as SAS `PROC DISCRIM` |
+| `$wilks` | global Wilks' lambda test (Rao's F), Pillai / Hotelling-Lawley / Roy statistics, Bartlett chi-square |
+| `$variables` | per-variable table: univariate and **partial** Wilks' lambda, F, p-value, status |
+| `$canonical` | discriminant axes: coefficients, eigenvalues, canonical correlations, structure, class centroids |
+| `$distances` | squared Mahalanobis distances between classes and their F-test p-values |
+| `$selected`, `$selection_history` | retained variables and the stepwise path |
+| `$confusion_train`, `$accuracy_train` | resubstitution results |
+| `$pooled_cov`, `$means`, `$priors`, `$classes` | model ingredients |
+
+```{r outputs}
+round(model$coefficients, 4)
+model$wilks$global
+model$variables[, c("variable", "univ_lambda", "partial_lambda", "partial_F", "partial_p", "status")]
+model$confusion_train
+```
+
+`model$summary()` prints the complete report (see the "Print / summary" tab in the Shiny app).
+
+## 3. Predict: `$predict()`, `$predict_proba()`
+
+```{r predict}
+new <- iris[c(1, 60, 120), 1:4]
+model$predict(new)                       # classes
+round(model$predict_proba(new), 4)       # posterior probabilities
+round(model$transform(new), 3)           # coordinates on the discriminant axes
+model$score(iris[, 1:4], iris$Species)   # accuracy
+```
+
+The usual generics work too: `predict(model, new, type = "prob")`, `coef(model)`, `summary(model)`, `plot(model)`.
+
+## 4. Graphics
+
+```{r plot-scores}
+model$plot("scores")
+```
+
+```{r plot-axes, fig.height=3.5}
+model$plot("axes")
+```
+
+## 5. Categorical predictors
+
+`credit_demo` mixes numeric and categorical variables (and includes noise and a redundant variable).
+
+```{r credit}
+data(credit_demo)
+str(credit_demo)
+X <- credit_demo[, -1]; y <- credit_demo$risk
+```
+
+Categorical variables are recoded **before** the matrix computation (`encoding`):
+
+* `"dummy"` (default): *k-1* indicator columns, keeps the covariance matrix invertible;
+* `"onehot"`: *k* columns, the pooled covariance becomes singular (the package falls back on a
+  pseudo-inverse and warns; predictions are identical to `"dummy"`);
+* `"label"`: integer codes, only sensible for *ordered* factors.
+
+```{r encodings}
+m_dummy <- LDA$new(encoding = "dummy")$fit(X, y)
+m_onehot <- suppressWarnings(LDA$new(encoding = "onehot")$fit(X, y))
+c(dummy = m_dummy$accuracy_train, onehot = m_onehot$accuracy_train)
+rownames(m_dummy$coefficients)
+```
+
+## 6. Variable selection and contribution
+
+`selection` can be `"forward"`, `"backward"` or `"both"` (stepwise); the criterion is the partial Wilks' lambda
+with the F-test thresholds `alpha_enter` / `alpha_stay` (as SAS `PROC STEPDISC`). A categorical variable
+enters or leaves as a whole.
+
+```{r selection}
+m <- LDA$new(selection = "both")$fit(X, y)
+m$selected
+m$selection_history[, c("step", "action", "variable", "partial_lambda", "p_value", "wilks")]
+m$variables[, c("variable", "type", "univ_p", "partial_p", "status")]
+```
+
+Status meaning:
+
+* **contributing**: brings information given the other variables;
+* **redundant**: informative alone (`univ_p` small) but adds nothing once the others are in (e.g. `income_copy`);
+* **uninformative**: no link with the target (`noise1`, `noise2`, `job`).
+
+```{r importance}
+m$plot("importance")
+```
+
+A fourth category, **perturbing** variables, is detected by cross-validation: a variable is perturbing
+when removing it *increases* the cross-validated accuracy.
+
+```{r audit}
+m$variable_audit(X, y, k = 5, seed = 1)
+```
+
+## 7. Honest evaluation: cross-validation
+
+The whole pipeline (encoding, selection, fit) is repeated inside each fold, so the estimate is not biased by the selection.
+
+```{r cv}
+m$cross_validate(X, y, k = 10, seed = 1)
+```
+
+## 8. High dimension and long data
+
+```{r wide}
+wide <- simulate_lda_data(n = 100, p = 400, K = 3, seed = 1)   # p > n: W is singular
+m_pinv <- tryCatch(LDA$new()$fit(wide[, -1], wide$y), warning = function(w) conditionMessage(w))
+m_pinv
+m_shr <- LDA$new(shrinkage = 0.3)$fit(wide[, -1], wide$y)       # shrinkage towards the diagonal
+m_fwd <- LDA$new(selection = "forward", alpha_enter = 0.01)$fit(wide[, -1], wide$y)
+c(shrinkage_cv = m_shr$cross_validate(wide[, -1], wide$y, k = 5, seed = 1)$accuracy,
+  forward_cv   = m_fwd$cross_validate(wide[, -1], wide$y, k = 5, seed = 1)$accuracy)
+```
+
+For very long data the within-class SSCP matrix is accumulated by chunks (`chunk_size`) so memory stays bounded;
+see `benchmarks/benchmark.R` for timings against `MASS::lda`.
+
+## 9. Priors, illustrative variables
+
+```{r priors}
+LDA$new(priors = "equal")$fit(X, y)$priors
+LDA$new(priors = c(low = 0.2, medium = 0.3, high = 0.5))$fit(X, y)$priors
+```
+
+Illustrative variables are not used by the model; they are described on the discriminant axes
+(correlations for numeric ones, barycentres for categorical ones).
+
+```{r illustrative}
+m_small <- LDA$new()$fit(X[, c("income", "debt_ratio", "savings")], y)
+m_small$project_illustrative(credit_demo[, c("age", "job")])
+```
+
+## 10. Scoring a file (what the Shiny app does)
+
+```{r file}
+f_train <- system.file("extdata", "credit_demo.tsv", package = "ldaR6")
+f_new   <- system.file("extdata", "credit_new.tsv",  package = "ldaR6")
+train <- read_data(f_train)                       # tab separated by default
+fit   <- LDA$new(selection = "both")$fit(train[, -1], factor(train$risk))
+newd  <- read_data(f_new)                         # descriptors only
+out   <- cbind(newd, predicted = as.character(fit$predict(newd)))
+head(out[, c("age", "income", "predicted")])
+write.table(out, tempfile(fileext = ".tsv"), sep = "\t", row.names = FALSE, quote = FALSE)
+```
+
+## 11. The Shiny application
+
+```r
+ldaR6::run_app()
+```
+
+1. **Data**: load a CSV/TSV/Excel file (tab separator by default) or use a built-in example.
+2. **Model setup**: choose the target, the explanatory and the illustrative variables, then the
+   parameters (priors, encoding, selection, shrinkage, train/test split, cross-validation) and press *Run*.
+3. **Results**: overview, classification functions (downloadable), tests, variable contributions,
+   confusion matrices (train / test / CV), discriminant plane, illustrative variables, full summary.
+4. **Predict**: one individual (a form generated from the variables of the model) or a whole file,
+   with a downloadable TSV of predicted classes and probabilities.
+
+## 12. Checking the computations against SAS PROC DISCRIM
+
+The classification functions follow the SAS definition (pooled covariance matrix, `ln(prior)` in the constant).
+To compare on your own data, run in SAS:
+
+```sas
+proc discrim data=mydata method=normal pool=yes crossvalidate;
+  class target;
+  var x1 x2 x3;
+  priors proportional;   /* or: priors equal; */
+run;
+```
+
+and compare "Linear Discriminant Function for target" with `model$coefficients`, the squared distances
+with `model$distances$d2`, and `Wilks' Lambda` / `Approx F` with `model$wilks$global`. On the iris data the slopes of the
+classification functions are 23.54417, 15.69821 and 12.44585 for the sepal length, which are the values usually reproduced
+for this example in the SAS documentation (we had no SAS licence to re-run it ourselves: please confirm on your own SAS).
+Posterior probabilities agree with `MASS::lda` to 1e-14 (see `tests/testthat/test-lda-core.R`).
+Wilks' lambda, Rao's F and Pillai's trace are also checked against `stats::manova`.
+
+```{r sas-check}
+# worked example: slopes for the sepal length, and agreement with MASS::lda
+round(LDA$new()$fit(iris[, 1:4], iris$Species)$coefficients["Sepal.Length", ], 5)
+l <- MASS::lda(iris[, 1:4], iris$Species)
+max(abs(predict(l, iris[, 1:4])$posterior - model$predict_proba(iris[, 1:4])))
+```
+
+## Session information
+
+```{r session}
+sessionInfo()$R.version$version.string
+packageVersion("ldaR6")
+```
