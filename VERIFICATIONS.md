@@ -24,7 +24,7 @@ Le sujet prévoit un travail en équipe. L’acceptation d’une remise individu
 | Lancement local de Shiny après installation depuis GitHub | Réussi avec `ldaR6::run_app()` |
 | Prédiction par fichier CSV dans Shiny | Testée en local |
 
-La [démonstration Shiny](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216) est publiée sur Posit Connect Cloud. Les vérifications locales ci-dessus ne constituent pas une recette complète de la version hébergée.
+La [démonstration Shiny]**[Launch the Shiny application on Posit Connect Cloud](https://01a1d27f-1653-cd6f-e042-b2aaab58b216.share.connect.posit.cloud/)** est publiée sur Posit Connect Cloud. Les vérifications locales ci-dessus ne constituent pas une recette complète de la version hébergée.
 
 ## Mesure locale de performance
 
