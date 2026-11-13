@@ -231,7 +231,7 @@ The prediction file should contain the required predictor columns with their ori
 
 ## 11. Use the Shiny application
 
-Open the [online demonstration](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216) or launch the application locally:
+Open the [online demonstration](https://01a1d27f-1653-cd6f-e042-b2aaab58b216.share.connect.posit.cloud/) or launch the application locally:
 
 ```r
 ldaR6::run_app()
