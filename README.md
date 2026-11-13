@@ -1,89 +1,101 @@
-# ldaR6 - Predictive Linear Discriminant Analysis (R6) + Shiny
+# ldaR6 — Predictive Linear Discriminant Analysis in R
 
-`ldaR6` implements **predictive linear discriminant analysis** from scratch as an `R6` class with a
-scikit-learn like interface, plus a **Shiny application** for non-programmers.
-Project of the M2 SISE (Universite Lumiere Lyon 2), course *Programmation R*, 2026-2027.
+**[Launch the Shiny application](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216)**
 
-* Standard Gaussian LDA classification functions; no SAS execution verified (pooled covariance, `ln(prior)` in the constant)
-* Wilks' lambda with Rao's F, Pillai / Hotelling-Lawley / Roy, Bartlett; **partial** tests per variable
-* Stepwise selection (forward / backward / both) on Wilks' lambda, like `PROC STEPDISC`
-* Categorical predictors: dummy (default), one-hot or label encoding, tested as blocks
-* Wide data (`shrinkage`, selection, pseudo-inverse) and very long data (chunked accumulation)
-* Cross-validation of the whole pipeline, discriminant axes, illustrative variables, perturbing-variable audit
-* Shiny app: load data, choose variables, tune, inspect, predict one individual or a file
+`ldaR6` is an R package for supervised classification using **linear discriminant analysis (LDA)**. Its core algorithm is implemented from scratch as an R6 class with a `fit`, `predict`, and `predict_proba` interface. The package includes a Shiny application for training models, exploring results, and making predictions without writing R code.
+
+## Features
+
+- Gaussian LDA classification with a pooled covariance matrix and configurable class priors.
+- Global and partial Wilks’ lambda tests, Rao’s F approximation, and Pillai, Hotelling–Lawley, Roy, and Bartlett statistics.
+- Forward, backward, and bidirectional variable selection based on Wilks’ lambda.
+- Dummy, one-hot, and label encoding for categorical predictors, with blockwise tests for encoded variables.
+- Covariance shrinkage and a pseudoinverse option for high-dimensional data, plus chunked computation for large datasets.
+- Cross-validation of the modeling pipeline, discriminant axes, and summaries of supplementary variables.
 
 ## Installation
 
+Run the following commands in R or RStudio:
+
 ```r
-install.packages("remotes")
+install.packages("remotes")  # Only needed once
 remotes::install_github("clark94/ldaR6")
 ```
 
-Fallback (no internet / GitHub problem): install the archive in [`releases/`](releases/) -
-in RStudio *Tools > Install Packages > Install from: Package Archive File*, or
+If the source archive is available locally, it can also be installed from the repository root:
 
 ```r
 install.packages("releases/ldaR6_1.0.0.tar.gz", repos = NULL, type = "source")
 ```
 
-The package is pure R (no compilation needed). The Shiny app additionally needs `shiny`, `bslib`, `DT`
-(`install.packages(c("shiny", "bslib", "DT", "readxl"))`).
+The package code is written in R and does not require compilation. If the optional application packages are missing, install them with:
+
+```r
+install.packages(c("shiny", "bslib", "DT", "readxl"))
+```
 
 ## Quick start
 
 ```r
 library(ldaR6)
-m <- LDA$new(selection = "both")          # constructor: parameters only
-m$fit(iris[, 1:4], iris$Species)          # learn
-m                                         # short print
-m$summary()                               # detailed report
-m$coefficients                            # classification functions
-m$predict(iris[1:3, 1:4]); m$predict_proba(iris[1:3, 1:4])
-m$cross_validate(iris[, 1:4], iris$Species, k = 10, seed = 1)
-ldaR6::run_app()                          # Shiny application
+
+X <- iris[, 1:4]
+y <- iris$Species
+
+model <- LDA$new(selection = "none", encoding = "dummy")
+model$fit(X, y)
+
+model$summary()
+model$coefficients
+model$predict(X[1:3, , drop = FALSE])
+model$predict_proba(X[1:3, , drop = FALSE])
+
+model$cross_validate(X, y, k = 5, seed = 1)
 ```
 
-**Full tutorial (reproducible, English): [TUTORIAL.md](TUTORIAL.md)** - source in `tutorial/TUTORIAL.Rmd`.
-Help pages: `?LDA`, `?read_data`, `?simulate_lda_data`, `?run_app`, `?credit_demo`.
+The three rows used for prediction in this example come from the training data. They illustrate the API; use the cross-validation results to assess predictive performance.
 
-## Repository layout
+## Shiny application
 
-| Path | Content |
-|---|---|
-| `R/` | package code (`LDA.R` class, `encoding.R`, `selection.R`, `stats_utils.R`, `utils_public.R`) |
-| `man/` | Rd help files (English) |
-| `inst/shiny/app/app.R` | Shiny application (`run_app()`) |
-| `inst/extdata/` | example data (tab separated): `credit_demo.tsv`, `credit_new.tsv` (no target), `iris.tsv` |
-| `data/`, `data-raw/` | `credit_demo` dataset and the script that generates it |
-| `tests/testthat/` | 70 unit tests (equivalence with `MASS::lda`, `stats::manova`, SAS formulas, robustness) |
-| `benchmarks/` | speed benchmark against `MASS::lda` (`benchmark.R`, `benchmark_results.csv`) |
-| `report/` | LaTeX report (French): `rapport.tex`, `rapport.pdf`, figures script |
-| `releases/` | `ldaR6_1.0.0.tar.gz` for local installation |
+Use the [online demo](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216) or launch the app locally:
 
-## Checking against SAS PROC DISCRIM
-
-```sas
-proc discrim data=mydata method=normal pool=yes crossvalidate;
-  class target; var x1 x2 x3; priors proportional;
-run;
+```r
+ldaR6::run_app()
 ```
-Compare with `m$coefficients`, `m$distances$d2`, `m$wilks$global`. See the last section of the tutorial.
-Note: SAS was not available when the package was written; equivalence is established through the SAS
-definitions, `MASS::lda` and `stats::manova` (automatic tests). Please run the SAS comparison on your own data.
 
-## Historical performance figures (not revalidated in this revision)
+| Step | What you can do |
+| --- | --- |
+| **Data** | Import a CSV, TSV, or Excel file, or load a built-in example such as `iris` or `credit_demo`. |
+| **Model setup** | Select the target, predictors, and supplementary variables. Configure preprocessing, variable selection, and evaluation. |
+| **Results** | Explore accuracy scores, confusion matrices, Wilks’ lambda, and discriminant plots. |
+| **Prediction** | Classify one observation through the form or upload a file of new observations. Export predicted classes and probabilities as TSV. |
 
-Rerun `benchmarks/benchmark.R` on your machine before reporting these figures as measured results. The GitHub installation URL assumes you publish this repository under `clark94/ldaR6`; publication has not been verified.
+## Validation and performance
 
-Original environment: R 4.5.2, Windows 11.
+Automated tests compare selected results against `MASS::lda`, `stats::manova`, and mathematical identities for LDA. The source archive passed `R CMD check --no-manual` with `Status: OK`. Installation directly from GitHub and local launch of the installed Shiny app were also verified.
 
-| n | p | `MASS::lda` | `ldaR6` | |
-|---:|---:|---:|---:|---|
-| 1e5 | 10 | 0.17 s | 0.12 s | same predictions |
-| 1e6 | 10 | 2.79 s | 1.57 s | same predictions |
-| 1e6 | 50 | 31.0 s | 9.0 s | same predictions |
-| 2e4 | 200 | 5.95 s | 1.40 s | same predictions |
-| 200 | 2000 | (singular) | 1.2 s with forward selection, 4.8 s with shrinkage | |
+In one local run on simulated data with 10 predictors, fitting on 100,000 observations took 0.45 seconds, and predicting 10,000 observations took 0.01 seconds. These timings describe that run and do not establish a speed advantage over `MASS::lda`. Historical comparisons are kept in `benchmarks/benchmark_results.csv`; rerun `benchmarks/benchmark.R` before citing them as results for the current version.
 
-## License
-MIT
+## Documentation and repository layout
+
+Start with the [reproducible tutorial in English](TUTORIAL.md). In R, see `?LDA`, `?read_data`, `?simulate_lda_data`, `?run_app`, and `?credit_demo` for function and dataset documentation.
+
+| Path | Contents |
+| --- | --- |
+| `R/` | R6 model, encoding, variable selection, and statistical utilities |
+| `man/` | Package help pages in English |
+| `inst/shiny/app/` | Shiny application |
+| `inst/extdata/` | Example TSV files for training and batch prediction |
+| `data/`, `data-raw/` | Built-in dataset and its generation script |
+| `tests/testthat/` | Automated tests |
+| `benchmarks/` | Benchmark script and historical results |
+| `tutorial/` | Tutorial source |
+| `report/` | Project report in French and LaTeX source |
+| `releases/` | Source archive for local installation |
+
+## Author and license
+
+**MAMPOUYA CLARK Chancy Loïc Franlly**  
+Master 2 SISE — Université Lumière Lyon 2 · R Programming, 2026–2027
+
+MIT License.
