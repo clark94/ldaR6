@@ -1,6 +1,6 @@
 # ldaR6 Tutorial: Predictive Linear Discriminant Analysis in R
 
-**[Launch the Shiny application on Posit Connect Cloud](https://connect.posit.cloud/loic/content/01a1d27f-1653-cd6f-e042-b2aaab58b216)**
+**[Launch the Shiny application on Posit Connect Cloud](https://01a1d27f-1653-cd6f-e042-b2aaab58b216.share.connect.posit.cloud/)**
 
 `ldaR6` implements **linear discriminant analysis (LDA)** as an R6 class. This tutorial shows how to fit a classification model, interpret its results, make predictions, and evaluate it on held-out observations. It also explains how to perform the same tasks through the Shiny application.
 
